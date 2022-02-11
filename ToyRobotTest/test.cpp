@@ -160,3 +160,18 @@ TEST_F(ToyRobotFixture, ShouldMoveOneStepEast)
 	ASSERT_EQ(pos.y_, 5);
 	ASSERT_EQ(pos.dir_, "east");
 }
+
+TEST_F(ToyRobotFixture, ShouldPlaceInANewPositionWhenPlaceIsCalledAgain)
+{
+	sut->runCommand("place,", 5, 5, "east");
+	auto pos = sut->getPosition();
+	ASSERT_EQ(pos.x_, 5);
+	ASSERT_EQ(pos.y_, 5);
+	ASSERT_EQ(pos.dir_, "east");
+
+	sut->runCommand("place,", 1, 3, "west");
+	pos = sut->getPosition();
+	ASSERT_EQ(pos.x_, 1);
+	ASSERT_EQ(pos.y_, 3);
+	ASSERT_EQ(pos.dir_, "west");
+}
