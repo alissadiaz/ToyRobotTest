@@ -1,177 +1,77 @@
-#ifndef _SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
-#define _SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
-#endif // !_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
-
 #include "pch.h"
+#include "Position.cpp"
 #include "ToyRobot.cpp"
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+class PositionMock : public IPosition
+{
+public:
+	MOCK_METHOD3(setPosition, void(int, int, std::string));
+	MOCK_METHOD0(move, void());
+	MOCK_METHOD1(rotate, void(const ERotation));
+	MOCK_METHOD0(getPosition, std::tuple<int, int, std::string>());
+	MOCK_METHOD0(isPositionValid, bool());
+};
 
 class ToyRobotFixture : public ::testing::Test
 {
 public:
-	ToyRobotFixture() {}
+	ToyRobotFixture() : x(-2), y(-2), dir("dir") {}
 	~ToyRobotFixture() {}
 
 	std::shared_ptr<ToyRobot> sut = std::make_shared<ToyRobot>();
+	std::shared_ptr<PositionMock> positionMock = std::shared_ptr<PositionMock>();
+	int x, y;
+	std::string dir;
 };
 
-TEST_F(ToyRobotFixture, ShouldPlaceNorth)
+TEST_F(ToyRobotFixture, ShouldPlaceRobot)
 {
-	sut->runCommand("place,", 0, 0, "north");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "north");
+	ASSERT_FALSE(sut->isPlaced());
+	//EXPECT_CALL(*positionMock, setPosition(::testing::_, ::testing::_, ::testing::_));
+	sut->place(1, 1, "north");
+	std::tie(x, y, dir) = sut->report();
+	ASSERT_EQ(x, 1);
+	ASSERT_EQ(y, 1);
+	ASSERT_EQ(dir, "north");
+	ASSERT_TRUE(sut->isPlaced());
 }
 
-TEST_F(ToyRobotFixture, ShouldPlaceEast)
+TEST_F(ToyRobotFixture, ShouldMoveRobot)
 {
-	sut->runCommand("place,", 0, 0, "east");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "east");
+	ASSERT_FALSE(sut->isPlaced());
+	//EXPECT_CALL(*positionMock, setPosition(::testing::_, ::testing::_, ::testing::_));
+	sut->place(1, 1, "north");
+	sut->move();
+	std::tie(x, y, dir) = sut->report();
+	ASSERT_EQ(x, 1);
+	ASSERT_EQ(y, 2);
+	ASSERT_EQ(dir, "north");
+	ASSERT_TRUE(sut->isPlaced());
 }
 
-TEST_F(ToyRobotFixture, ShouldPlaceSouth)
+TEST_F(ToyRobotFixture, ShouldRotateRightRobot)
 {
-	sut->runCommand("place,", 0, 0, "south");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "south");
+	ASSERT_FALSE(sut->isPlaced());
+	//EXPECT_CALL(*positionMock, setPosition(::testing::_, ::testing::_, ::testing::_));
+	sut->place(1, 1, "north");
+	sut->rotate(ERotation::right);
+	std::tie(x, y, dir) = sut->report();
+	ASSERT_EQ(x, 1);
+	ASSERT_EQ(y, 1);
+	ASSERT_EQ(dir, "east");
+	ASSERT_TRUE(sut->isPlaced());
 }
 
-TEST_F(ToyRobotFixture, ShouldPlaceWest)
+TEST_F(ToyRobotFixture, ShouldRotateLeftRobot)
 {
-	sut->runCommand("place,", 0, 0, "west");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "west");
-}
-
-TEST_F(ToyRobotFixture, ShouldNotFallOffTheTable)
-{
-	sut->runCommand("place,", 0, 0, "west");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "west");
-}
-
-TEST_F(ToyRobotFixture, ShouldNotAcceptInvalidPosition)
-{
-	sut->runCommand("place,", -4, -6, "west");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, -1);
-	ASSERT_EQ(pos.y_, -1);
-	ASSERT_EQ(pos.dir_, "");
-}
-
-TEST_F(ToyRobotFixture, ShouldNotAcceptInvalidDirection)
-{
-	sut->runCommand("place,", 0, 0, "northeast");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, -1);
-	ASSERT_EQ(pos.y_, -1);
-	ASSERT_EQ(pos.dir_, "");
-}
-
-TEST_F(ToyRobotFixture, ShouldAcceptUppercaseDirection)
-{
-	sut->runCommand("place,", 0, 0, "WEST");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-	ASSERT_EQ(pos.dir_, "west");
-}
-
-TEST_F(ToyRobotFixture, ShouldChangeDirectionWithLeftCommand)
-{
-	sut->runCommand("place,", 0, 0, "west");
-	sut->runCommand("left");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "south");
-	sut->runCommand("left");
-	pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "east");
-	sut->runCommand("left");
-	pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "north");
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-}
-
-TEST_F(ToyRobotFixture, ShouldChangeDirectionWithRightCommand)
-{
-	sut->runCommand("place,", 0, 0, "west");
-	sut->runCommand("right");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "north");
-	sut->runCommand("right");
-	pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "east");
-	sut->runCommand("right");
-	pos = sut->getPosition();
-	ASSERT_EQ(pos.dir_, "south");
-	ASSERT_EQ(pos.x_, 0);
-	ASSERT_EQ(pos.y_, 0);
-}
-
-TEST_F(ToyRobotFixture, ShouldMoveOneStepNorth)
-{
-	sut->runCommand("place,", 5, 5, "north");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 5);
-	ASSERT_EQ(pos.y_, 6);
-	ASSERT_EQ(pos.dir_, "north");
-}
-
-TEST_F(ToyRobotFixture, ShouldMoveOneStepWest)
-{
-	sut->runCommand("place,", 5, 5, "west");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 4);
-	ASSERT_EQ(pos.y_, 5);
-	ASSERT_EQ(pos.dir_, "west");
-}
-
-TEST_F(ToyRobotFixture, ShouldMoveOneStepSouth)
-{
-	sut->runCommand("place,", 5, 5, "south");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 5);
-	ASSERT_EQ(pos.y_, 4);
-	ASSERT_EQ(pos.dir_, "south");
-}
-
-TEST_F(ToyRobotFixture, ShouldMoveOneStepEast)
-{
-	sut->runCommand("place,", 5, 5, "east");
-	sut->runCommand("move");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 6);
-	ASSERT_EQ(pos.y_, 5);
-	ASSERT_EQ(pos.dir_, "east");
-}
-
-TEST_F(ToyRobotFixture, ShouldPlaceInANewPositionWhenPlaceIsCalledAgain)
-{
-	sut->runCommand("place,", 5, 5, "east");
-	auto pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 5);
-	ASSERT_EQ(pos.y_, 5);
-	ASSERT_EQ(pos.dir_, "east");
-
-	sut->runCommand("place,", 1, 3, "west");
-	pos = sut->getPosition();
-	ASSERT_EQ(pos.x_, 1);
-	ASSERT_EQ(pos.y_, 3);
-	ASSERT_EQ(pos.dir_, "west");
+	ASSERT_FALSE(sut->isPlaced());
+	//EXPECT_CALL(*positionMock, setPosition(::testing::_, ::testing::_, ::testing::_));
+	sut->place(1, 1, "north");
+	sut->rotate(ERotation::left);
+	std::tie(x, y, dir) = sut->report();
+	ASSERT_EQ(x, 1);
+	ASSERT_EQ(y, 1);
+	ASSERT_EQ(dir, "west");
+	ASSERT_TRUE(sut->isPlaced());
 }
